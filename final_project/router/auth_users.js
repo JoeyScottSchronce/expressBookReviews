@@ -5,7 +5,7 @@ const regd_users = express.Router();
 
 let users = [];
 
-const isValid = (username)=>{
+const isValid = (username) => {
     let sameName = users.filter((user) => {
         return user.username === username;
     });
@@ -16,7 +16,7 @@ const isValid = (username)=>{
     }
 };
 
-const authenticatedUser = (username,password)=>{
+const authenticatedUser = (username, password) => {
     let isVaildUsers = users.filter((user) => {
         return (user.username === username && user.password === password);
     });
@@ -27,8 +27,8 @@ const authenticatedUser = (username,password)=>{
     }
 };
 
-//only registered users can login
-regd_users.post("/login", (req,res) => {
+// only registered users can login
+regd_users.post("/login", (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
     if (!username || !password) {
@@ -47,19 +47,41 @@ regd_users.post("/login", (req,res) => {
     }
 });
 
-// Add a book review
+// Add or modify a book review
 regd_users.put("/auth/review/:isbn", (req, res) => {
-    
-    
-    return res.status(404).json({message: "Book not found."});
+    const username = req.session.authorization.username;
+    const isbn = req.params.isbn;
+    const review = req.body.review;
+
+    if (!books[isbn]) {
+        return res.status(404).json({ message: "Book not found." });
+    }
+
+    if (!books[isbn].reviews) {
+        books[isbn].reviews = {};
+    }
+
+    books[isbn].reviews[username] = review;
+
+    return res.status(200).json({ message: "Review added/modified successfully." });
 });
 
 // Delete a book review
 regd_users.delete("/auth/review/:isbn", (req, res) => {
+    const username = req.session.authorization.username;
+    const isbn = req.params.isbn;
 
-    return res.status(404).json({message: "Book not found."});
+    if (!books[isbn]) {
+        return res.status(404).json({ message: "Book not found." });
+    }
+
+    if (books[isbn].reviews && books[isbn].reviews[username]) {
+        delete books[isbn].reviews[username];
+        return res.status(200).json({ message: "Review deleted successfully." });
+    }
+
+    return res.status(404).json({ message: "Review not found." });
 });
-
 
 module.exports.authenticated = regd_users;
 module.exports.isValid = isValid;
